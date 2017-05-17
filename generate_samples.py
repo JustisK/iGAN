@@ -30,7 +30,22 @@ if __name__ == '__main__':
     model_class = locate('model_def.%s' % args.model_type)
     model = model_class.Model(model_name=args.model_name, model_file=args.model_file)
     # generate samples
-    samples = model.gen_samples(z0=None, n=196, batch_size=49, use_transform=True)
+
+        #def gen_samples(self, z0=None, n=32, batch_size=32, use_transform=True):
+    samples = []
+    n = 32
+    batch_size = 32
+    z0 = np_rng.uniform(-1., 1., size=(n, model.nz))
+    n_batches = int(np.ceil(n/float(batch_size)))
+    for i in range(n_batches):
+        zmb = floatX(z0[batch_size * i:min(n, batch_size * (i + 1)), :])
+        xmb = model._gen(zmb)
+        samples.append(xmb)
+    samples = np.concatenate(samples, axis=0)
+    if use_transform:
+        samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
+        samples = (samples * 255).astype(np.uint8)
+    #samples = model.gen_samples(z0=None, n=196, batch_size=49, use_transform=True)
     # generate grid visualization
     im_vis = utils.grid_vis(samples, 14, 14)
     # write to the disk
