@@ -7,7 +7,9 @@ from lib import HOGNet
 from lib.rng import np_rng
 from lib.theano_utils import floatX, sharedX
 import numpy as np
+import requests
 
+from StringIO import StringIO
 from lib import AlexNet
 import lasagne
 from scipy import optimize
@@ -164,7 +166,7 @@ def invert_images_CNN_opt(invert_models, ims, solver='cnn'):
         zs = None
 
     if solver == 'cnn_opt' or solver == 'opt':
-        recs, zs, loss = invert_bfgs_batch(gen_model, invert_model, ftr_model, ims, z_predict=z_predict, npx=npx)
+        recs, zs, loss = invert_bfgs_batch(gen_model, invert_model, ftr_model, ims, z_predict=z_predict)
 
     return recs, zs, z_predict
 
@@ -180,6 +182,35 @@ def parse_args():
     parser.add_argument('--solver', dest='solver', help='solver (cnn, opt, or cnn_opt)', type=str, default='cnn_opt')
     args = parser.parse_args()
     return args
+
+npx = 0
+def find_latent(input_file="", url=""):
+    model_file = './models/handbag_64.dcgan_theano'
+    if url:
+        r = requests.get(url)
+        i = Image.open(StringIO(r.content))
+        input_file = "pics/tmp.jpg"
+        i.save(input_file)
+    output_file = input_file.replace('.jpg', '_out.png')
+    im = Image.open(input_file)
+    [h, w] = im.size
+    print('read image: %s (%dx%d)' % (input_file, h, w))
+    model_class = locate('model_def.dcgan_theano')
+    gen_model = model_class.Model(
+        model_name="handbag_64", model_file=model_file, use_predict=True)
+    invert_models = def_invert_models(gen_model, layer='conv4', alpha=0.002)
+    npx = gen_model.npx
+    im = im.resize((npx, npx))
+    im = np.array(im)
+    im_pre = im[np.newaxis, :, :, :]
+    # run the model
+    rec, _, z  = invert_images_CNN_opt(invert_models, im_pre, solver="cnn_opt")
+    rec = np.squeeze(rec)
+    rec_im = Image.fromarray(rec)
+    # resize the image (input aspect ratio)
+    rec_im = rec_im.resize((h, w))
+    rec_im.save(output_file)
+    
 
 if __name__ == "__main__":
     args = parse_args()
