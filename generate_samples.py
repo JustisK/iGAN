@@ -2,7 +2,10 @@ from __future__ import print_function
 import argparse
 from pydoc import locate
 from lib import utils
+from lib.rng import np_rng
 import cv2
+import numpy as np
+from lib.theano_utils import floatX
 
 def parse_args():
     parser = argparse.ArgumentParser(description='generated random samples (dcgan_theano)')
@@ -42,9 +45,8 @@ if __name__ == '__main__':
         xmb = model._gen(zmb)
         samples.append(xmb)
     samples = np.concatenate(samples, axis=0)
-    if use_transform:
-        samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
-        samples = (samples * 255).astype(np.uint8)
+    samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
+    samples = (samples * 255).astype(np.uint8)
     #samples = model.gen_samples(z0=None, n=196, batch_size=49, use_transform=True)
     # generate grid visualization
     im_vis = utils.grid_vis(samples, 14, 14)
