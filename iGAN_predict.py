@@ -1,22 +1,15 @@
 from __future__ import print_function
 
-import theano
-import theano.tensor as T
-from time import time
-from lib import HOGNet
+import argparse, cv2, lasagne, numpy as np, requests, theano, theano.tensor as T
+from lib import activations, AlexNet, HOGNet, utils
 from lib.rng import np_rng
 from lib.theano_utils import floatX, sharedX
-import numpy as np
-import requests
+from time import time
 
 from StringIO import StringIO
-from lib import AlexNet
-import lasagne
 from scipy import optimize
-import argparse
 from PIL import Image
 from pydoc import locate
-from lib import activations
 
 def def_feature(layer='conv4', up_scale=4):
     print('COMPILING...')
@@ -205,12 +198,38 @@ def find_latent(input_file="", url=""):
     im_pre = im[np.newaxis, :, :, :]
     # run the model
     rec, _, z  = invert_images_CNN_opt(invert_models, im_pre, solver="cnn_opt")
-    rec = np.squeeze(rec)
-    rec_im = Image.fromarray(rec)
+    return z
+    #rec = np.squeeze(rec)
+    #rec_im = Image.fromarray(rec)
     # resize the image (input aspect ratio)
-    rec_im = rec_im.resize((h, w))
-    rec_im.save(output_file)
+    #rec_im = rec_im.resize((h, w))
+    #rec_im.save(output_file)
     
+def generate(z, output_image):
+    model_class = locate('model_def.dcgan_theano')
+    model_file = './models/handbag_64.dcgan_theano'
+    model = model_class.Model(
+        model_name="handbag_64", model_file=model_file)
+    samples = []
+    n = 1
+    batch_size = 1
+    z = z.reshape((1, 100))
+    zmb = floatX(z[0 : n, :])
+    xmb = model._gen(zmb)
+    samples.append(xmb)
+    samples = np.concatenate(samples, axis=0)
+    samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
+    samples = (samples * 255).astype(np.uint8)
+    #samples = model.gen_samples(z0=None, n=196, batch_size=49, use_transform=True)
+    # generate grid visualization
+    im_vis = utils.grid_vis(samples, 1, 1)
+    # write to the disk
+    im_vis = cv2.cvtColor(im_vis, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(output_image, im_vis)
+
+def convert(output_image, input_file="", url=""):
+    z = find_latent(input_file, url)
+    generate(z, output_image)
 
 if __name__ == "__main__":
     args = parse_args()
