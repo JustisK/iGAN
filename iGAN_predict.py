@@ -61,15 +61,11 @@ def def_predict(model_P):
     print('%.2f seconds to compile _predict function' % (time() - t))
     return _predict
 
-
 def def_invert_models(gen_model, layer='conv4', alpha=0.002):
     bfgs_model = def_bfgs(gen_model.model_G, layer=layer, npx=gen_model.npx, alpha=alpha)
     ftr_model = def_feature(layer=layer)
     predict_model = def_predict(gen_model.model_P)
     return gen_model, bfgs_model, ftr_model, predict_model
-
-
-
 
 def predict_z(gen_model, _predict, ims, batch_size=32):
     n = ims.shape[0]
@@ -176,7 +172,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-npx = 0
 def find_latent(input_file="", url=""):
     model_file = './models/handbag_64.dcgan_theano'
     if url:
