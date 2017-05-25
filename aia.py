@@ -45,17 +45,24 @@ class Network(object):
         return z
 
     def interpolate(self, img0, img1, x0=-0.5, x1=1.5, delta=1/20.0):
+        """Return a visualization of an interpolation between img0 and img1,
+        starting with parameter x0 and going to x1, in increments of
+        delta.  Note that img0 corresponds to parameter x0=0 and img1
+        to parameter x1=1.  The default is to start outside that
+        range, and so we do some extrapolation.
+        """
         z0 = self.get_latent_vector(img0).reshape((100,))
         z1 = self.get_latent_vector(img1).reshape((100,))
         ps = np.arange(x0, x1-0.000001, delta)
         n = ps.size
-        arrays = [p*z0+(1-p)*z1 for p in ps]
+        arrays = [(1-p)*z0+p*z1 for p in ps]
         z = np.stack(arrays)
         zmb = floatX(z[0 : n, :])
         xmb = self.model._gen(zmb)
         samples = [xmb]
         samples = np.concatenate(samples, axis=0)
-        samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
+        samples = self.model.inverse_transform(
+            samples, npx=self.model.npx, nc=self.model.nc)
         samples = (samples * 255).astype(np.uint8)
         m = math.ceil(math.sqrt(n))
         img_vis = utils.grid_vis(samples, m, m)
