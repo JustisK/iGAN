@@ -1,5 +1,6 @@
 import cv2
 import iGAN_predict
+import IPython.display
 import math
 import numpy as np
 import requests
@@ -18,7 +19,9 @@ def get_image(url):
     return Image.open(StringIO(r.content))
 
 def display_image(img):
-    imshow(np.asarray(img))
+    img = np.asarray(img)
+    print img.shape
+    imshow(img)
 
 def lerp(z0, z1, p):
     """Return the vector linearly interpolating between z0 and z1, with
