@@ -55,7 +55,7 @@ class Network(object):
         self.invert_models = iGAN_predict.def_invert_models(
             self.gen_model, layer='conv4', alpha=0.002)
 
-    def get_latent_vector(self, img):
+    def get_lv(self, img):
         """Return the latent vector z associated to img."""
         [h, w] = img.size
         npx = self.gen_model.npx
@@ -75,8 +75,8 @@ class Network(object):
         and so we do some extrapolation.
 
         """
-        z0 = self.get_latent_vector(img0).reshape((100,))
-        z1 = self.get_latent_vector(img1).reshape((100,))
+        z0 = self.get_lv(img0).reshape((100,))
+        z1 = self.get_lv(img1).reshape((100,))
         ps = np.arange(x0, x1-0.000001, delta)
         n = ps.size
         arrays = [lerp(z0, z1, p) for p in ps]
