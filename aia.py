@@ -20,6 +20,28 @@ def get_image(url):
 def display_image(img):
     imshow(np.asarray(img))
 
+def lerp(z0, z1, p):
+    """Return the vector linearly interpolating between z0 and z1, with
+    parameter p: p=0 corresponds to z0 and p=1 to z1.
+
+    """
+    return (1-p)*z0+p*z1
+
+def serp(z0, z1, p):
+    r0 = np.linalg.norm(z0)
+    n0 = z0/r0
+    r1 = np.linalg.norm(z1)
+    n1 = z1/r1
+    theta = math.acos(np.inner(n0, n1)) # angle between z0 and z1
+    perp = n1-np.inner(n0, n1)*n0 # vector perp to n0 and in the n0, n1 plane
+    nperp = perp/np.linalg.norm(perp) # n0 and nperp are orthonormal
+                                      # and span the n0, n1 plane
+    angle = p*theta
+    n = math.cos(angle)*n0+math.sin(angle)*nperp # spherically interpolated unit vector
+    # next interpolate the radii
+    r = (1-p)*r0 + p*r1
+    return r*n
+
 class Network(object):
 
     def __init__(self, model_name):
@@ -44,18 +66,20 @@ class Network(object):
             self.invert_models, img_pre, solver="cnn_opt")
         return z
 
-    def interpolate(self, img0, img1, x0=-0.5, x1=1.5, delta=1/20.0):
+    def interpolate(self, img0, img1, interp=serp, x0=-0.5, x1=1.5, delta=1/20.0):
         """Return a visualization of an interpolation between img0 and img1,
-        starting with parameter x0 and going to x1, in increments of
-        delta.  Note that img0 corresponds to parameter x0=0 and img1
-        to parameter x1=1.  The default is to start outside that
-        range, and so we do some extrapolation.
+        using interpolation method interp.  The interpolation starts
+        with parameter x0 and goes to x1, in increments of delta.
+        Note that img0 corresponds to parameter x0=0 and img1 to
+        parameter x1=1.  The default is to start outside that range,
+        and so we do some extrapolation.
+
         """
         z0 = self.get_latent_vector(img0).reshape((100,))
         z1 = self.get_latent_vector(img1).reshape((100,))
         ps = np.arange(x0, x1-0.000001, delta)
         n = ps.size
-        arrays = [(1-p)*z0+p*z1 for p in ps]
+        arrays = [lerp(z0, z1, p) for p in ps]
         z = np.stack(arrays)
         zmb = floatX(z[0 : n, :])
         xmb = self.model._gen(zmb)
@@ -68,6 +92,7 @@ class Network(object):
         img_vis = utils.grid_vis(samples, m, m)
         return img_vis
     # img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2RGB)
+
 
 # def lerp(img0, img1, p, model=None, gen_model=None, model_name="handbag_64"):
 #     if  not model:
