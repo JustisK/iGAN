@@ -104,3 +104,7 @@ class Network(object):
         samples = (samples * 255).astype(np.uint8)
         img_vis = utils.grid_vis(samples, 1, 1)
         return img_vis
+
+    def analogize(self, z0, z1, z2):
+        "Return the vector z3 so that z0 : z1 as z2 : z3"
+        return z1-z0+z2
