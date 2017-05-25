@@ -66,7 +66,7 @@ class Network(object):
             self.invert_models, img_pre, solver="cnn_opt")
         return z
 
-    def interpolate(self, img0, img1, interp=serp, x0=-0.5, x1=1.5, delta=1/20.0):
+    def interpolate_full(self, img0, img1, interp=serp, x0=-0.5, x1=1.5, delta=1/20.0):
         """Return a visualization of an interpolation between img0 and img1,
         using interpolation method interp.  The interpolation starts
         with parameter x0 and goes to x1, in increments of delta.
@@ -80,9 +80,9 @@ class Network(object):
         ps = np.arange(x0, x1-0.000001, delta)
         n = ps.size
         arrays = [lerp(z0, z1, p) for p in ps]
-        z = np.stack(arrays)
-        zmb = floatX(z[0 : n, :])
-        xmb = self.model._gen(zmb)
+        z = np.stack(arrays); print z.shape
+        zmb = floatX(z[0 : n, :]); print zmb.shape
+        xmb = self.model._gen(zmb); print xmb.shape
         samples = [xmb]
         samples = np.concatenate(samples, axis=0)
         samples = self.model.inverse_transform(
@@ -93,24 +93,14 @@ class Network(object):
         return img_vis
     # img_vis = cv2.cvtColor(img_vis, cv2.COLOR_BGR2RGB)
 
-
-# def lerp(img0, img1, p, model=None, gen_model=None, model_name="handbag_64"):
-#     if  not model:
-#         model_class = locate('model_def.dcgan_theano')
-#         model_file = './models/'+model_name+'.dcgan_theano'
-#         model = model_class.Model(
-#             model_name=model_name, model_file=model_file)
-#     if not gen_model:
-#         model_class = locate('model_def.dcgan_theano')
-#         model_file = './models/'+model_name+'.dcgan_theano'
-#         gen_model = model_class.Model(
-#             model_name=model_name, model_file=model_file, use_predict=True)
-#     arrays = [p*z0+(1-p)*z1]
-#     z = np.stack(arrays)
-#     zmb = floatX(z[0 : 64, :])
-#     xmb = model._gen(zmb)
-#     samples = [xmb]
-#     samples = np.concatenate(samples, axis=0)
-#     samples = model.inverse_transform(samples, npx=model.npx, nc=model.nc)
-#     samples = (samples * 255).astype(np.uint8)
-#     return samples[0]
+    def imagify(self, z):
+        """Return an image corresponding to the latent vector z."""
+        z = np.stack([z.reshape((100,))])
+        zmb = floatX(z[0 : 1, :]);
+        xmb = self.model._gen(zmb);
+        samples = np.concatenate([xmb], axis=0)
+        samples = self.model.inverse_transform(
+            samples, npx=self.model.npx, nc=self.model.nc)
+        samples = (samples * 255).astype(np.uint8)
+        img_vis = utils.grid_vis(samples, 1, 1)
+        return img_vis
