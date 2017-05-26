@@ -25,16 +25,29 @@ def get_image(url):
     return Image.open(StringIO(r.content))
 
 def display_image(img, scale=1.0):
-    img = np.asarray(img)
-    w = img.shape[0]
-    h = img.shape[1]
-    fig = plt.figure(frameon=False)
-    fig.set_size_inches(scale*w/DPIX, scale*h/DPIY)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])
-    ax.set_axis_off()
-    fig.add_axes(ax)
-    ax.imshow(img, aspect="normal")
-    # imshow(img)
+    """Assumes all subimages are the same size."""
+    if type(img) != list:
+        img = np.asarray(img)
+        w = img.shape[0]
+        h = img.shape[1]
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(scale*w/DPIX, scale*h/DPIY)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        ax.imshow(img, aspect="normal")
+    else:
+        nx = len(img[0])
+        ny = len(img)
+        fig = plt.figure()
+        fig.set_size_inches(scale*nx, scale*ny)
+        for j in range(ny):
+            for k in range(nx):
+                if img[j][k] != None:
+                    ax = plt.subplot(ny, nx, j*nx+k+1)
+                    ax.set_axis_off()
+                    ax.imshow(np.asarray(img[j][k]))
+        plt.show()
 
 def lerp(z0, z1, p):
     """Return the vector linearly interpolating between z0 and z1, with
@@ -82,7 +95,7 @@ class Network(object):
             self.invert_models, img_pre, solver="cnn_opt")
         return z
 
-    def interpolate_full(self, img0, img1, interp=serp, x0=-0.5, x1=1.5, delta=1/20.0):
+    def interpolate_full(self, img0, img1, interp=serp, x0=-0.5, x1=1.5, delta=1/32.0):
         """Return a visualization of an interpolation between img0 and img1,
         using interpolation method interp.  The interpolation starts
         with parameter x0 and goes to x1, in increments of delta.
@@ -124,3 +137,24 @@ class Network(object):
     def analogize(self, z0, z1, z2):
         "Return the vector z3 so that z0 : z1 as z2 : z3"
         return z1-z0+z2
+
+    def jplot(self, img0, img1, img2, nx=4, ny=4, scale=1.0):
+        z0 = self.get_lv(img0)
+        z1 = self.get_lv(img1)
+        z2 = self.get_lv(img2)
+        z3 = self.analogize(z0, z1, z2)
+        left_col = [serp(z0, z2, p) for p in np.arange(0, 1.000000001, 1.0/(ny-1))]
+        right_col = [serp(z1, z3, p) for p in np.arange(0, 1.00000001, 1.0/(ny-1))]
+        array = [ [serp(z_left, z_right, p) for p in np.arange(0, 1.000000001, 1.0/(nx-1))]
+                  for z_left, z_right in zip(left_col, right_col)]
+        img_array = [ [self.imagify(z) for z in row] for row in array]
+        # append base images in top left, bottom left, and top right
+        img_array[0].insert(0, img0)
+        for j in range(1, ny-1):
+            img_array[j].insert(0, None)
+        img_array[-1].insert(0, img2)
+        img_array[0].append(img1)
+        for j in range(1, ny):
+            img_array[j].append(None)
+        display_image(img_array)
+        
