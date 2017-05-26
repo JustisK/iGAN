@@ -2,6 +2,7 @@ import cv2
 import iGAN_predict
 import IPython.display
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
 
@@ -12,16 +13,28 @@ from PIL import Image
 from pydoc import locate
 from StringIO import StringIO
 
+# Set the dots per inch of the screen.  This is needed for matplotlib
+# to display images at the correct size.
+DPIX = 80.0
+DPIY = 68.0
+
 def get_image(url):
     """Take a URL and return the image at that URL.  A typical source will be a
     handbag or shoe image from Amazon."""
     r = requests.get(url)
     return Image.open(StringIO(r.content))
 
-def display_image(img):
+def display_image(img, scale=1.0):
     img = np.asarray(img)
-    print img.shape
-    imshow(img)
+    w = img.shape[0]
+    h = img.shape[1]
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(scale*w/DPIX, scale*h/DPIY)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    ax.imshow(img, aspect="normal")
+    # imshow(img)
 
 def lerp(z0, z1, p):
     """Return the vector linearly interpolating between z0 and z1, with
